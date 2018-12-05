@@ -1,0 +1,30 @@
+---
+# ansible-playbook -v -i "198.18.133.200," 3.Get-All-Tenants.yml
+- name: Ansible Create Legacy Common Tenant
+  # Look for hosts in the [aci] container of the inventory file
+  hosts: all
+  # Use the local Ansible system
+  connection: local
+  # Dont bother with fact computation about remote entities wont need that for the simple plays being run
+  gather_facts: no
+
+  # Use Username and privatekey provided at runtime combined with the hostname list to run in the task
+  # there are alot of ways to pass username and password creds and hosts.
+  vars:
+    aci_username: "YOURUSERNAME"
+    aci_password: "YOURPWDHERE"
+    aci_host: "{{ inventory_hostname }}"
+
+  tasks:
+  - name: Query all tenants
+    aci_tenant:
+      host: "{{ aci_host }}"
+      username: "{{ aci_username }}"
+      password: "{{ aci_password }}"
+      validate_certs: no
+      state: query
+    delegate_to: localhost
+    register: query_result
+
+  - debug: msg="{{ query_result }}"
+  

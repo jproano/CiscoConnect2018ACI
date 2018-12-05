@@ -1,0 +1,97 @@
+---
+# ansible-playbook -i "198.18.133.200," 6.Create-APandEPG.yml 
+- name: Ansible Create Application Profile and EPGs
+  # Look for hosts in the [aci] container of the inventory file
+  hosts: all
+  # Use the local Ansible system
+  connection: local
+  # Dont bother with fact computation about remote entities wont need that for the simple plays being run
+  gather_facts: no
+
+  # Use Username and privatekey provided at runtime combined with the hostname list to run in the task
+  # there are alot of ways to pass username and password creds and hosts.
+  vars:
+    aci_username: "YOURUSERNAME"
+    aci_password: "YOURPWDHERE"
+    aci_host: "{{ inventory_hostname }}"
+
+  # Use the aci_bd module to retrieve the BD that was created in the previous step. Will save the 
+  # returned results to a variable called bd_query_result
+
+  tasks:
+    - name: Get the BD for the Ansible Tenant # Shows how to work with vars in Ansible
+      aci_bd:
+        host: "{{ aci_host }}"
+        username: "{{ aci_username }}"
+        password: "{{ aci_password }}"
+        validate_certs: no
+        tenant: Ansible-Combined-Prod
+        state: query
+      delegate_to: localhost
+      register: bd_query_result
+
+  # Can output the results of the variable. THis is helpful when working with the parsing to 
+  # get to to the result that is needed
+  # #####################################
+  #  - name: Output Result
+  #    debug:
+  #      msg: "{{ bd_query_result.current[0].fvTenant.children[0].fvBD.attributes.name }}" # Can Parse Jason using .<attribute>
+  # #####################################
+  # Will use the aci_rest module again as we are sending multiple actions or steps in a single call
+  # Going to create an application profile (fvAp), 2 EPGs (fvAEPg) and link the two EPGs to the 
+  # bridge domain "Combined-Prod-BD" that was retrieved from the above BD query. NOTE: if there where
+  # more than 1 BD potentially some additional logic would be needed to determine the correct
+  # location. 
+
+    - name: Configure Ansible Common Tenant Application Configuration AP/EPG
+      aci_rest:
+        host: "{{ aci_host }}"
+        username: "{{ aci_username }}"
+        password: "{{ aci_password }}"
+        use_proxy: no
+        validate_certs: no
+        method: post
+        path: /api/mo/uni.json
+        content: |
+         "fvAp": {
+           "attributes": {
+              "dn":"uni/tn-Ansible-Combined-Prod/ap-Ansible-Combined-Prod",
+              "name":"Ansible-Combined-Prod",
+              "rn":"ap-Ansible-Combined-Prodt"
+           },
+           "children" : [{
+             "fvAEPg": {
+               "attributes": {
+                 "dn":"uni/tn-Ansible-Combined-Prod/ap-Ansible-Combined-Prod/epg-Tenant-1",
+                 "name":"Tenant-1",
+                 "rn":"epg-Tenant-1"
+              },
+              "children": [{
+                "fvRsBd": {
+                  "attributes": {
+                    "tnFvBDName":"{{ bd_query_result.current[0].fvTenant.children[0].fvBD.attributes.name }}"
+                  },
+                  "children":[]
+                  }
+               }]
+           }
+          },
+          {
+          "fvAEPg": {
+            "attributes": {
+              "dn":"uni/tn-Ansible-Combined-Prod/ap-Ansible-Combined-Prod/epg-Tenant-2",
+              "name":"Tenant-2",
+              "rn":"epg-Tenant-2"
+            },
+            "children": [{
+              "fvRsBd": {
+                "attributes": {
+                  "tnFvBDName":"{{ bd_query_result.current[0].fvTenant.children[0].fvBD.attributes.name }}"
+                },
+                "children":[]
+              }
+            }]
+           }
+          }]
+         }
+

@@ -1,0 +1,58 @@
+---
+# ansible-playbook -i "198.18.133.200," 5.Create-Tenant-Networking.yml 
+- name: Ansible Create Tenant, VRF, and BD with Netwrking Policies
+  # Look for hosts in the [aci] container of the inventory file
+  hosts: all
+  # Use the local Ansible system
+  connection: local
+  # Dont bother with fact computation about remote entities wont need that for the simple plays being run
+  gather_facts: no
+
+  # Use Username and privatekey provided at runtime combined with the hostname list to run in the task
+  # there are alot of ways to pass username and password creds and hosts.
+  vars:
+    aci_username: "YOURUSERNAME"
+    aci_password: "YOURPWDHERE"
+    aci_host: "{{ inventory_hostname }}"
+
+  # Use the ACI rest module to send an XML payload that contains a Tenant (fvTenant), a VRF (fvCtx),
+  # a InterfacePolicy (ndIfPol), an V6 NDRA (ndPfxPol), and a Bridge Domain (fvBD) that has connections
+  # to the VRF (fvRsCtx), the interface Policies (fvRsBDtoNdP), and a few V4 and V6 subnets, with the 
+  # V6 subnets having been linked to the NDRA policy (fvRsNdPfxPol).
+  
+  tasks:
+    - name: Create a Tenant,VRF,Policies,BDs, and Subnets
+      aci_rest:
+        host: "{{ aci_host }}"
+        username: "{{ aci_username }}"
+        password: "{{ aci_password }}"
+        validate_certs: no
+        use_proxy: no
+        method: post
+        path: /api/mo/uni.xml
+        content: |
+          <fvTenant descr="Legacy Combined Networking Environemnt" dn="uni/tn-Ansible-Combined-Prod" name="Ansible-Combined-Prod" ownerKey="" ownerTag=""> # Tenant
+            <fvCtx descr="" knwMcastAct="permit" name="Combined-Prod-VRF" ownerKey="" ownerTag="" pcEnfPref="enforced"> #VRF
+            </fvCtx>
+            <ndIfPol name="Ansible-IF-Policy" ctrl=""  descr="" hopLimit="64" mtu="9000" nsIntvl="1000" nsRetries="3" ownerKey="" ownerTag="" raIntvl="600" raLifetime="1800" reachableTime="0" retransTimer="0"/> # Jumbo MTU IF Policy
+            <ndPfxPol ctrl="on-link,router-address" descr="" lifetime="1000" name="Ansible-NDRAv6" ownerKey="" ownerTag="" prefLifetime="1000"/> # IPv6 RA Policy
+            <fvBD arpFlood="no" descr="" mac="00:63:69:73:63:6F" multiDstPktAct="encap-flood" name="Combined-Prod-BD" ownerKey="" ownerTag="" unicastRoute="yes" unkMacUcastAct="proxy" unkMcastAct="flood"> # Bridge Domain
+              <fvRsBDToNdP tnNdIfPolName="Ansible-IF-Policy"/> # Associating IF Policy to BD
+              <fvRsCtx tnFvCtxName="Combined-Prod-VRF"/> # Associating BD to VRF
+              <fvSubnet ctrl="nd" descr="" ip="fc00:10:100:1::1/64" name="" preferred="no" scope="private"> # New IPv6 Addr for BD
+                  <fvRsNdPfxPol tnNdPfxPolName="Ansible-NDRAv6"/>
+              </fvSubnet>
+              <fvSubnet ctrl="nd" descr="" ip="fc00:10:100:2::1/64" name="" preferred="no" scope="private"> # New IPv6 Addr for BD
+                  <fvRsNdPfxPol tnNdPfxPolName="Ansible-NDRAv6"/>
+              </fvSubnet>
+              <fvSubnet ctrl="nd" descr="" ip="10.100.1.1/24" name="" preferred="no" scope="private"> # New IPv4 Addr for BD
+              </fvSubnet>
+              <fvSubnet ctrl="nd" descr="" ip="10.100.2.1/24" name="" preferred="no" scope="private"> # New IPv4 Addr for BD
+              </fvSubnet>
+            </fvBD>
+          </fvTenant>
+      register: result
+
+    - name: Output Result
+      debug:
+        msg: "{{ result }}" # Can Parse Jason using .<attribute>

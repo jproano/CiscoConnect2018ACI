@@ -1,0 +1,322 @@
+{
+	"info": {
+		"_postman_id": "ae15f63d-34db-47d7-ac7d-f00bb132ad52",
+		"name": "DevNet-ACI-Lab",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. ACI Login & Token Refresh",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "8c29e348-07c0-4d0e-b3a6-835b8b94ed91",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"aaaUser\":{\n\t\t\"attributes\":{\n\t\t\t\"name\" : \"admin\",\n\t\t\t\"pwd\" : \"C1sco12345\"\n\t\t}\n\t}\n}"
+				},
+				"url": "https://198.18.133.200/api/aaaLogin.json"
+			},
+			"response": []
+		},
+		{
+			"name": "2. ACI Refresh Token",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "e541d0bc-85d0-4abb-b6f3-57543aa706f1",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Token",
+						"value": "{{Token}}",
+						"type": "text"
+					}
+				],
+				"body": {},
+				"url": "https://198.18.133.200/api/aaaRefresh.json"
+			},
+			"response": []
+		},
+		{
+			"name": "3. ACI Get All Tenants",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Token",
+						"value": "",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": "https://198.18.133.200/api/node/class/fvTenant.xml"
+			},
+			"response": []
+		},
+		{
+			"name": "4a. ACI Get 1 Layer Deep Child Elements on a Specific Tenant",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "https://198.18.133.200/api/node/mo/uni/tn-infra.json?query-target=children",
+					"protocol": "https",
+					"host": [
+						"198",
+						"18",
+						"133",
+						"200"
+					],
+					"path": [
+						"api",
+						"node",
+						"mo",
+						"uni",
+						"tn-infra.json"
+					],
+					"query": [
+						{
+							"key": "query-target",
+							"value": "children"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "4b. ACI Get Subtree with a Filter of Speific Items for a Tenant",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "https://198.18.133.200/api/node/mo/uni/tn-infra.json?query-target=subtree&target-subtree-class=fvAp,fvAEPg",
+					"protocol": "https",
+					"host": [
+						"198",
+						"18",
+						"133",
+						"200"
+					],
+					"path": [
+						"api",
+						"node",
+						"mo",
+						"uni",
+						"tn-infra.json"
+					],
+					"query": [
+						{
+							"key": "query-target",
+							"value": "subtree"
+						},
+						{
+							"key": "target-subtree-class",
+							"value": "fvAp,fvAEPg"
+						}
+					]
+				},
+				"description": "Filtering on the AP and EPG types"
+			},
+			"response": []
+		},
+		{
+			"name": "4c. ACI Get all Subtree elements for a Tenant",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "https://198.18.133.200/api/node/mo/uni/tn-infra.xml?query-target=subtree",
+					"protocol": "https",
+					"host": [
+						"198",
+						"18",
+						"133",
+						"200"
+					],
+					"path": [
+						"api",
+						"node",
+						"mo",
+						"uni",
+						"tn-infra.xml"
+					],
+					"query": [
+						{
+							"key": "query-target",
+							"value": "subtree"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "5. Create a Tenant/VRF/Policy/BD/Subnet in 1 Call",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/xml",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "          <fvTenant descr=\"Postman API Networking Environemnt\" dn=\"uni/tn-PostmanAPI\" name=\"PostmanAPI\" ownerKey=\"\" ownerTag=\"\"> # Tenant\n            <fvCtx descr=\"\" knwMcastAct=\"permit\" name=\"Prod-VRF\" ownerKey=\"\" ownerTag=\"\" pcEnfPref=\"enforced\"> #VRF\n            </fvCtx>\n            <ndIfPol name=\"PostmanAPI-IF-Policy\" ctrl=\"\"  descr=\"\" hopLimit=\"64\" mtu=\"9000\" nsIntvl=\"1000\" nsRetries=\"3\" ownerKey=\"\" ownerTag=\"\" raIntvl=\"600\" raLifetime=\"1800\" reachableTime=\"0\" retransTimer=\"0\"/> # Jumbo MTU IF Policy\n            <ndPfxPol ctrl=\"on-link,router-address\" descr=\"\" lifetime=\"1000\" name=\"PostmanAPI-NDRAv6\" ownerKey=\"\" ownerTag=\"\" prefLifetime=\"1000\"/> # IPv6 RA Policy\n            <fvBD arpFlood=\"no\" descr=\"\" mac=\"00:63:69:73:63:6F\" multiDstPktAct=\"encap-flood\" name=\"Prod-BD\" ownerKey=\"\" ownerTag=\"\" unicastRoute=\"yes\" unkMacUcastAct=\"proxy\" unkMcastAct=\"flood\"> # Bridge Domain\n              <fvRsBDToNdP tnNdIfPolName=\"PostmanAPI-IF-Policy\"/> # Associating IF Policy to BD\n              <fvRsCtx tnFvCtxName=\"Prod-VRF\"/> # Associating BD to VRF\n              <fvSubnet ctrl=\"nd\" descr=\"\" ip=\"fc00:10:100:1::1/64\" name=\"\" preferred=\"no\" scope=\"private\"> # New IPv6 Addr for BD\n                  <fvRsNdPfxPol tnNdPfxPolName=\"PostmanAPI-NDRAv6\"/>\n              </fvSubnet>\n              <fvSubnet ctrl=\"nd\" descr=\"\" ip=\"fc00:10:100:2::1/64\" name=\"\" preferred=\"no\" scope=\"private\"> # New IPv6 Addr for BD\n                  <fvRsNdPfxPol tnNdPfxPolName=\"PostmanAPI-NDRAv6\"/>\n              </fvSubnet>\n              <fvSubnet ctrl=\"nd\" descr=\"\" ip=\"10.100.1.1/24\" name=\"\" preferred=\"no\" scope=\"private\"> # New IPv4 Addr for BD\n              </fvSubnet>\n              <fvSubnet ctrl=\"nd\" descr=\"\" ip=\"10.100.2.1/24\" name=\"\" preferred=\"no\" scope=\"private\"> # New IPv4 Addr for BD\n              </fvSubnet>\n            </fvBD>\n          </fvTenant>"
+				},
+				"url": "https://198.18.133.200/api/mo/uni.xml",
+				"description": "Effectivly create all needed networking elements for a tenant in a single call using XML"
+			},
+			"response": []
+		},
+		{
+			"name": "6. Create an Application Profile & EPGs in 1 call",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"fvAp\": {\n            \"attributes\": {\n              \"dn\":\"uni/tn-PostmanAPI/ap-PostmanAPI-AP\",\n              \"name\":\"PostmanAPI-AP\",\n              \"rn\":\"ap-PostmanAPI-AP\"\n            },\n            \"children\" : [{\n            \t\"fvAEPg\": {\n            \t\t\"attributes\": {\n                \t\t\"dn\":\"uni/tn-PostmanAPI/ap-PostmanAPI-AP/epg-Tenant-1\",\n                \t\t\"name\":\"Tenant-1\",\n                \t\t\"rn\":\"epg-Tenant-1\"\n                \t\t},\n                \t\"children\": [{\n                \t\t\"fvRsBd\": {\n                    \t\t\"attributes\": {\n                    \t\t\t\"tnFvBDName\":\"Prod-BD\"\n                    \t\t},\n                \t\t\t\"children\":[]\n            \t\t\t}\n                \t}]\n        \t\t}\n    \t\t},\n    \t\t{\n              \"fvAEPg\": {\n                \"attributes\": { \n                  \"dn\":\"uni/tn-PostmanAPI/ap-PostmanAPI-AP/epg-Tenant-2\",\n                  \"name\":\"Tenant-2\",\n                  \"rn\":\"epg-Tenant-2\"\n                },\n                \"children\": [{\n                  \"fvRsBd\": {\n                    \"attributes\": {\n                      \"tnFvBDName\":\"Prod-BD\"\n                    },\n                    \"children\":[]\n                    }\n            \t}]\n        \t}\n    \t}]\n\t}\n}"
+				},
+				"url": "https://198.18.133.200/api/mo/uni.json",
+				"description": "Using JSON"
+			},
+			"response": []
+		},
+		{
+			"name": "7. Create a Contract to allow all communications.",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"vzBrCP\": {\n            \"attributes\": {\n              \"dn\":\"uni/tn-PostmanAPI/brc-AllowCommonCommunication\",\n              \"name\":\"AllowCommonCommunication\",\n              \"scope\":\"application-profile\"\n              },\n            \"children\": [{\n              \"vzSubj\": {\n                \"attributes\": {\n                  \"dn\":\"uni/tn-PostmanAPI/brc-AllowCommonCommunication/subj-AllowComs\",\n                  \"name\":\"AllowComs\"\n                  },\n                \"children\": [{\n                  \"vzRsSubjFiltAtt\": {\n                    \"attributes\": {\n                      \"tnVzFilterName\":\"default\",\n                      \"directives\":\"\"\n                    },\n                \t\"children\": []\n                \t}\n                }]\n            }\n    \t}]\n\t}\n}"
+				},
+				"url": "https://198.18.133.200/api/mo/uni.json"
+			},
+			"response": []
+		},
+		{
+			"name": "8a. Connect Tenant 1 EPG to Provide Allow All Contract",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\"fvRsProv\": {\n        \"attributes\": {\n        \t\"tnVzBrCPName\":\"AllowCommonCommunication\"\n    \t}\n    }\n}"
+				},
+				"url": "https://198.18.133.200/api/mo/uni/tn-PostmanAPI/ap-PostmanAPI-AP/epg-Tenant-1.json"
+			},
+			"response": []
+		},
+		{
+			"name": "8b. Connect Tenant 1 EPG to Consume Allow All Contract",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/xml",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "<fvRsCons childAction=\"\" dn=\"uni/tn-PostmanAPI/ap-PostmanAPI-AP/epg-Tenant-1/rscons-AllowCommonCommunication\"/>"
+				},
+				"url": "https://198.18.133.200/api/mo/uni/tn-PostmanAPI/ap-PostmanAPI-AP/epg-Tenant-1.xml"
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"id": "6d92d5b3-b815-4c2d-8397-ce3bae51e2e1",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"id": "12799a05-b29f-4b37-8a95-c790c194fe51",
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	]
+}

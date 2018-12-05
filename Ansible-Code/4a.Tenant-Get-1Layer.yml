@@ -1,0 +1,35 @@
+---
+# ansible-playbook -i "198.18.133.200," 4a.Tenant-Get-1Layer.yml
+- name: Ansible ACI Tenant GET method Children Filter
+  # Look for hosts in the [aci] container of the inventory file
+  hosts: all
+  # Use the local Ansible system
+  connection: local
+  # Dont bother with fact computation about remote entities wont need that for the simple plays being run
+  gather_facts: no
+
+  # Use Username and privatekey provided at runtime combined with the hostname list to run in the task
+  # there are alot of ways to pass username and password creds and hosts.
+  vars:
+    aci_username: "YOURUSERNAME"
+    aci_password: "YOURPWDHERE"
+    aci_host: "{{ inventory_hostname }}"
+
+  # Use the aci_rest module with the infrastructure tenant in ACI and specify the filter parameter of children for the query target
+  tasks:
+    - name: Query All Tenants
+      aci_rest:
+        host: "{{ aci_host }}"
+        username: "{{ aci_username }}"
+        password: "{{ aci_password }}"
+        validate_certs: no
+        use_proxy: no
+        method: get
+        path: api/node/mo/uni/tn-infra.json?query-target=children
+        output_level: debug
+      register: result
+
+  # Output the payload response to the screen
+    - name: Output Result
+      debug:
+        msg: "{{ result.imdata }}" # Can Parse Jason using .<attribute>

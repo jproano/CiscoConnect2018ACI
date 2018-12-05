@@ -1,0 +1,157 @@
+---
+# ansible-playbook -i "198.18.133.200," 7.CreateContractAssignEPGsyml 
+- name: Ansible ACI Contract creation and EPG assignment
+  # Look for hosts in the [aci] container of the inventory file
+  hosts: all
+  # Use the local Ansible system
+  connection: local
+  # Dont bother with fact computation about remote entities wont need that for the simple plays being run
+  gather_facts: no
+
+  # Use Username and privatekey provided at runtime combined with the hostname list to run in the task
+  # there are alot of ways to pass username and password creds and hosts.
+  vars:
+    aci_username: "YOURUSERNAME"
+    aci_password: "YOURPWDHERE"
+    aci_host: "{{ inventory_hostname }}"
+
+  tasks:
+    - name: Add a new contract
+      aci_contract:
+        host: "{{ aci_host }}"
+        username: "{{ aci_username }}"
+        password: "{{ aci_password }}"
+        validate_certs: no
+        tenant: Ansible-Combined-Prod
+        contract: AllowCommonCommunication
+        description: Allow All
+        scope: application-profile
+        state: present
+      delegate_to: localhost
+
+    - name: Add the AllowAll Subject
+      aci_contract_subject:
+        host: "{{ aci_host }}"
+        username: "{{ aci_username }}"
+        password: "{{ aci_password }}"
+        validate_certs: no
+        tenant: Ansible-Combined-Prod
+        contract: AllowCommonCommunication
+        subject: AllowComs
+        reverse_filter: yes
+        state: present
+      delegate_to: localhost
+  
+    - name: Add a new contract subject to filer binding
+      aci_contract_subject_to_filter:
+        host: "{{ aci_host }}"
+        username: "{{ aci_username }}"
+        password: "{{ aci_password }}"
+        validate_certs: no
+        tenant: Ansible-Combined-Prod
+        contract: AllowCommonCommunication
+        subject: AllowComs
+        filter: default
+        state: present
+      delegate_to: localhost
+
+#    OR YOU Can do a single call to rest to replace the above call.  
+#    - name: Ansible Create a Contract to allow Communication Between EPGs
+#      aci_rest:
+#        host: "{{ aci_host }}"
+#        username: "{{ aci_username }}"
+#        password: "{{ aci_password }}"
+#        validate_certs: no
+#        use_proxy: no
+#        validate_certs: no
+#        method: post
+#        path: /api/mo/uni.json
+#        content: |
+#          "vzBrCP": {
+#            "attributes": {
+#              "dn":"uni/tn-Ansible-Combined-Prod/brc-AllowCommonCommunication",
+#              "name":"AllowCommonCommunication",
+#              "scope":"application-profile"
+#              },
+#            "children": [{
+#              "vzSubj": {
+#                "attributes": {
+#                  "dn":"uni/tn-Ansible-Combined-Prod/brc-AllowCommonCommunication/subj-AllowComs",
+#                  "name":"AllowComs"
+#                  },
+#                "children": [{
+#                  "vzRsSubjFiltAtt": {
+#                    "attributes": {
+#                      "tnVzFilterName":"default",
+#                      "directives":""
+#                    },
+#                  "children": []
+#                  }
+#                }]
+#              }
+#            }]
+#          }
+
+    - name: Connect Tenant 1 EPG to Provide Allow All Contract
+      aci_epg_to_contract:
+        host: "{{ aci_host }}"
+        username: "{{ aci_username }}"
+        password: "{{ aci_password }}"
+        validate_certs: no
+        tenant: Ansible-Combined-Prod
+        ap: Ansible-Combined-Prod
+        epg: Tenant-1
+        contract: AllowCommonCommunication
+        contract_type: provider
+        state: present
+      delegate_to: localhost
+
+    - name: Connect Tenant 1 EPG to Consume Allow All Contract
+      aci_rest:
+        host: "{{ aci_host }}"
+        username: "{{ aci_username }}"
+        password: "{{ aci_password }}"
+        validate_certs: no
+        use_proxy: no
+        method: post
+        path: /api/mo/uni/tn-Ansible-Combined-Prod/ap-Ansible-Combined-Prod/epg-Tenant-1.json
+        content: |
+          "fvRsCons": {
+            "attributes": {
+              "tnVzBrCPName":"AllowCommonCommunication",
+            },
+            "children": []
+          }
+      delegate_to: localhost
+      
+    - name: Connect Tenant 2 EPG to Provide Allow All Contract
+      aci_rest:
+        host: "{{ aci_host }}"
+        username: "{{ aci_username }}"
+        password: "{{ aci_password }}"
+        use_proxy: no
+        validate_certs: no
+        method: post
+        path: /api/mo/uni/tn-Ansible-Combined-Prod/ap-Ansible-Combined-Prod/epg-Tenant-2.json
+        content: |
+          "fvRsProv": {
+            "attributes": {
+              "tnVzBrCPName":"AllowCommonCommunication",
+            },
+            "children": []
+          }
+      delegate_to: localhost
+
+    - name: Connect Tenant 2 EPG to Consume Allow All Contract
+      aci_epg_to_contract:
+        host: "{{ aci_host }}"
+        username: "{{ aci_username }}"
+        password: "{{ aci_password }}"
+        validate_certs: no
+        tenant: Ansible-Combined-Prod
+        ap: Ansible-Combined-Prod
+        epg: Tenant-2
+        contract: AllowCommonCommunication
+        contract_type: consumer
+        state: present
+      delegate_to: localhost

@@ -1,0 +1,58 @@
+---
+# ansible-playbook -v -i "apic1.dcloud.cisco.com," ACI.yml
+# PLEASE BE VERY VERY... VERY Careful using this near a production system as you may find 
+# all of your tenants will be deleted! Use of this file constitutes awareness and having
+# been warned!  
+- name: Lab Cleanup, Delete all tenants not in the protected tenant list
+  # Look for hosts in the [aci] container of the inventory file
+  hosts: all
+  # Use the local Ansible system
+  connection: local
+  # Dont bother with fact computation about remote entities wont need that for the simple plays being run
+  gather_facts: no
+
+  # Use Username and privatekey provided at runtime combined with the hostname list to run in the task
+  # there are alot of ways to pass username and password creds and hosts. Generate a list if protected tenants
+  # these wont be deleted (even attempted) buy the solution
+  vars:
+    aci_username: "YOURUSERNAME"
+    aci_password: "YOURPWDHERE"
+    aci_host: "{{ inventory_hostname }}"
+    my_protected_tenants:
+      - infra
+      - common
+      - mgmt
+    tenant_list: ""
+    delete_tenant_list: ""
+
+  tasks:
+  # Get all the tenants in the system and save the result to a variable called query_result
+  - name: Query all tenants
+    aci_tenant:
+      host: "{{ aci_host }}"
+      username: "{{ aci_username }}"
+      password: "{{ aci_password }}"
+      validate_certs: no
+      state: query
+    delegate_to: localhost
+    register: query_result
+
+  # Parse the query result and grab only the name attribute into a list and save that to a new var called tenant_list
+  - set_fact:
+      tenant_list: "{{ query_result | json_query('current[*].fvTenant.attributes.name') }}"
+
+  # Use the difference function to derive a list from the tenants in the system - the protected tenants
+  - set_fact:
+      delete_tenant_list: "{{ tenant_list | difference(my_protected_tenants) }}"
+
+  # Use the ACI Tenant module and loop through the task with delete list substituted for the tenant value.
+  # The state:absent implies a delete function.
+  - name: Delete Lab Tenants
+    aci_tenant:
+      host: "{{ aci_host }}"
+      username: "{{ aci_username }}"
+      password: "{{ aci_password }}"
+      validate_certs: no
+      tenant: "{{ item }}"
+      state: absent
+    loop: "{{ delete_tenant_list }}"
